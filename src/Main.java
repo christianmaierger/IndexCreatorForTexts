@@ -26,6 +26,8 @@ public class Main {
                 Index resultIndex = indexCreator.createIndexForDocument();
 
                 PrintService printService = new PrintService(resultIndex);
+
+
                 printService.printParametersAkaKenngrößen();
 
 

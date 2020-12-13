@@ -71,12 +71,6 @@ public class IndexCreatorService {
         index.setNumberOfDifferentWords(vocabularyList.size());
 
 
-
-
-
-
-
-
         int i=1;
 
             for (String line : listOfLinesNotEmptyAndNoSpecialChars) {
@@ -84,7 +78,7 @@ public class IndexCreatorService {
 
                 for (String term: vocabularyList) {
 
-                    term= " "+ term + " ";
+                    term= " "+ term;
 
                 if (line.contains(term)) {
                     index.setNumberOfTermDocumentAssociations((int) (index.getNumberOfTermDocumentAssociations()+1.0));
