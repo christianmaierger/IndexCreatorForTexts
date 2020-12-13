@@ -25,16 +25,29 @@ public class PrintService {
     public void printInvertedList() {
       List<Searchterm> resultList = index.getSearchtermList();
 
+        resultList.sort(new Comparator<>() {
+            public int compare(Searchterm q1, Searchterm q2) {
+                return q1.getTerm().compareTo(q2.getTerm());
+            }
+        } );
 
+         for(Searchterm term: resultList) {
 
-        for (Searchterm term: resultList) {
-        resultList.sort(new Comparator<Searchterm>() {
-                public int compare(Searchterm q1, Searchterm q2) {
-                    return q1.getTerm().compareToIgnoreCase(q2.getTerm());
-                }
-            });
-            System.out.println(lineCounter + " " + term.getTerm() + " " + term.getDocumentsByNumberWhereTermAppears());
+             StringBuilder builder = new StringBuilder();
+             for (int value : term.getDocumentsByNumberWhereTermAppears()) {
+                 builder.append(value + ", ");
+             }
+             builder.deleteCharAt(builder.length()-2);
+             String text = builder.toString();
+            text = text.trim();
+
+            System.out.println(lineCounter + " " + term.getTerm() + " [" + term.getNumberOfAppereances() + "; " + text + "]");
             lineCounter++;
+
+
+
+
         }
+
     }
 }

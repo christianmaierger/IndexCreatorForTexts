@@ -3,7 +3,7 @@ import java.util.List;
 
 public class Searchterm {
   String term;
-  int numberOfAppereances;
+  int numberOfAppereances=0;
   List<Integer> documentsByNumberWhereTermAppears= new LinkedList<>();
 
     public Searchterm(String term) {
@@ -37,4 +37,11 @@ public class Searchterm {
         }
 
     }
+
+        public void calculateNumberOfTermAppereances() {
+            this.setNumberOfAppereances(getDocumentsByNumberWhereTermAppears().size());
+        }
+
+
+
 }

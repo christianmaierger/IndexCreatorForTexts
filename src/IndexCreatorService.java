@@ -2,6 +2,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -27,13 +28,13 @@ public class IndexCreatorService {
             e.printStackTrace();
         }
 
-        //index.setNumberOfDocuments(linesList.size());
+
 
         Stream<String> lines = linesList.stream().filter(IndexCreatorService::replaceEmptyLines);
 
-        Stream<String> linesToGetWords = linesList.stream();
 
-        Stream<String> linesToGetPolishedLineList = linesList.stream();
+
+        Stream<String> linesToGetWords = linesList.stream();
 
 
 
@@ -41,7 +42,8 @@ public class IndexCreatorService {
         index.setNumberOfDocuments(lineCount);
 
 
-        Stream<String> words = linesToGetWords.flatMap(line -> Stream.of(line.split(" ")));
+        Stream<String> words = linesToGetWords.filter(IndexCreatorService::replaceEmptyLines).flatMap(line -> Stream.of(line.split(" ")));
+
 
 
      long wordCount = words.count();
@@ -51,57 +53,95 @@ public class IndexCreatorService {
         index.setNumberOfTotalWords(wordCount);
 
 
-        Stream wordsAsDistinct = linesList.stream().filter(IndexCreatorService::replaceEmptyLines).flatMap(
+        Stream<String> wordsAsDistinct = linesList.stream().filter(IndexCreatorService::replaceEmptyLines).flatMap(
                 line -> Stream.of(line.split(" ")).map(IndexCreatorService::eliminateSpecialChars));
 
 
-        Stream wordsAsDistinctForLineList = linesList.stream().filter(IndexCreatorService::replaceEmptyLines).flatMap(
-                line -> Stream.of(line.split(" ")).map(IndexCreatorService::eliminateSpecialChars));
-
-        Stream<String> vocabularyString = wordsAsDistinct.distinct();
 
 
-        List<String> vocabularyList = vocabularyString.sorted().collect(Collectors.toList());
+        Stream<String> vocabularyStringNormalizedToLowerCase = wordsAsDistinct.map(IndexCreatorService::allToLowerCase).distinct();
 
 
-        List<String>  listOfLinesNotEmptyAndNoSpecialChars = linesList.stream().filter(IndexCreatorService::replaceEmptyLines).collect(Collectors.toList());
+
+
+        List<String> vocabularyList = vocabularyStringNormalizedToLowerCase.sorted().collect(Collectors.toList());
+
+
+
+        List<String>  listOfLinesNotEmptyAndNoSpecialChars = linesList.stream().filter(IndexCreatorService::replaceEmptyLines).map(IndexCreatorService::eliminateSpecialChars).map(IndexCreatorService::allToLowerCase).collect(Collectors.toList());
 
 
 
         index.setNumberOfDifferentWords(vocabularyList.size());
 
 
+
+        int allAppereances=0;
+
+
         int i=1;
 
             for (String line : listOfLinesNotEmptyAndNoSpecialChars) {
 
+               List<String> wordsOfNormalizedLines = Arrays.asList(line.split(" "));
 
-                for (String term: vocabularyList) {
 
-                    term= " "+ term;
+                for (String word: wordsOfNormalizedLines) {
 
-                if (line.contains(term)) {
-                    index.setNumberOfTermDocumentAssociations((int) (index.getNumberOfTermDocumentAssociations()+1.0));
-                    if(index.getSearchTermByName(term) == null){
-                        Searchterm newTerm;
-                        index.getSearchtermList().add(newTerm = new Searchterm(term));
-                        newTerm.setNumberOfAppereances(newTerm.getNumberOfAppereances()+1);
-                        newTerm.addToDocumentsWehreTermAppears(i);
-                    }
-                   index.getSearchTermByName(term).setNumberOfAppereances(index.getSearchTermByName(term).getNumberOfAppereances()+1);
-                   index.getSearchTermByName(term).addToDocumentsWehreTermAppears(i);
 
+
+
+                    for (String term : vocabularyList) {
+
+
+                        if (word.equals(term)) {
+
+
+
+
+                                if (index.getSearchTermByName(term) == null) {
+                                    Searchterm newTerm = new Searchterm(term);
+                                    index.getSearchtermList().add(newTerm);
+
+
+
+                                    newTerm.addToDocumentsWehreTermAppears(i);
+                                 //   newTerm.setNumberOfAppereances(newTerm.getDocumentsByNumberWhereTermAppears().size());
+                                     index.getSearchTermByName(term).calculateNumberOfTermAppereances();
+                                } else {
+
+
+
+                                    index.getSearchTermByName(term).addToDocumentsWehreTermAppears(i);
+                                   // index.getSearchTermByName(term).setNumberOfAppereances(index.getSearchTermByName(term).getDocumentsByNumberWhereTermAppears().size());
+                                    index.getSearchTermByName(term).calculateNumberOfTermAppereances();
+
+                                }
+                            }
+
+
+                        }
                 }
-
-            }
                 i++;
         }
 
+        int result = 0;
+        for (Searchterm term: index.getSearchtermList()) {
 
+                result += term.getNumberOfAppereances();
+        }
 
-
+            index.setNumberOfTermDocumentAssociations(result);
 
 return index;
+    }
+
+
+
+
+    private static String allToLowerCase(String s) {
+        s=s.toLowerCase();
+        return s;
     }
 
     private static boolean replaceEmptyLines(String s) {
@@ -112,7 +152,7 @@ return index;
     }
 
     private static String eliminateSpecialChars(String s) {
-       s= s.replaceAll("[^a-zA-Z0-9]", "");
+       s= s.replaceAll("[^a-zA-Z0-9 ]", "");
         return s;
     }
 
