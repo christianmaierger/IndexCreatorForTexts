@@ -3,49 +3,93 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Scanner;
 
 public class Main {
 
 
     public static void main(String[] args) {
 
-        if (args.length != 3) {
-            System.err.println("Something went wrong with the arguments, please just a path to the file you want to have indexed");
-            System.exit(-1);
+
+        Scanner scanner = new Scanner(System.in);
+        Path file = null;
+
+        System.out.println("Please type in path to file you want to have indexed: ");
+
+        boolean isAcceptableFile = false;
+        while(!isAcceptableFile) {
+            String input = scanner.nextLine();
+
+
+            try {
+                file = Paths.get(input);
+                if(Files.isRegularFile(file)) {
+                    boolean fileExtensionCorrect = input.endsWith("txt") || input.endsWith("docx");
+                    if (!fileExtensionCorrect) {
+                        System.out.println("Please just type in a path to a txt or docx file!");
+                    } else {
+                        isAcceptableFile=true;
+                        break;
+                    }
+                } else {
+                    System.out.println("Sorry only paths to files allowed as input, you typed in: " + input);
+                }
+            } catch (Exception e) {
+                System.out.println("Sorry only paths to files allowed as input, you typed in: " + input);
+            }
         }
 
 
-        final String filePathAsString = args[0];
-        final String type = args[1];
-        final String dgaps = args[2];
 
-        if (!dgaps.equals("true") && !dgaps.equals("false")) {
-            System.out.println(dgaps);
-            System.out.println("Sry please just type true or false to indicate if you want to display dgaps or just document numbers");
-            System.exit(-1);
+
+        String type = "";
+        boolean typeAcceptable=false;
+        while(!typeAcceptable) {
+            System.out.println("Please type line or verse to set document granularity!");
+            String input = scanner.nextLine();
+
+            try {
+                if (!input.equals("line") && !input.equals("verse")) {
+                    System.out.println("Sry please just type in line or verse as second argument to decide if documents should be lines or verses");
+                } else {
+                    type=input;
+                    typeAcceptable = true;
+                    break;
+                }
+            } catch (Exception e) {
+                System.out.println("Sry please just type in line or verse as second argument to decide if documents should be lines or verses");
+            }
         }
 
-        boolean gaps;
-        if (dgaps.equals("true")) {
-            gaps=true;
-        } else {
-            gaps=false;
+        boolean dgapAcceptable=false;
+        boolean dgap=false;
+        while(!dgapAcceptable) {
+            System.out.println("Please type in true if you want index with dgaps or false if you just want document numbers in inverted list!");
+            String input = scanner.nextLine();
+
+            try {
+                if (!input.equals("true") && !input.equals("false")) {
+
+                    System.out.println("Please just type in true or false!");
+                } else {
+                    if(input.equals("true")) {
+                        dgapAcceptable=true;
+                        dgap = true;
+                        break;
+                    } else {
+                        dgapAcceptable=true;
+                        dgap =false;
+                        break;
+                    }
+
+                }
+            } catch (Exception e) {
+                System.out.println("Sorry only paths to files allowed as input, you typed in: " + input);
+            }
         }
 
 
-        if (!type.equals("line") && !type.equals("verse")) {
 
-
-            System.out.println(type);
-            System.out.println("Sry please just type in line or verse as second argument to decide if documents should be lines or verses");
-            System.exit(-1);
-        }
-
-        Path file = Paths.get(filePathAsString);
-
-        if(Files.isRegularFile(file)) {
-            boolean fileExtensionCorrect = filePathAsString.endsWith("txt") || filePathAsString.endsWith("docx") ;
-            if (fileExtensionCorrect){
                 IndexCreatorService indexCreator = new IndexCreatorService(file, type);
                 Index resultIndex = indexCreator.createIndexForDocument();
 
@@ -56,12 +100,10 @@ public class Main {
 
 
 
-                printService.printInvertedList(gaps);
-            }
-               
+                printService.printInvertedList(dgap);
+
 
         }
 
     }
 
-}
