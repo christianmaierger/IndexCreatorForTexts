@@ -33,45 +33,14 @@ public class IndexCreatorService {
         List<String> verses = new LinkedList<>();
         if(type.equals("verse")) {
 
-            List<String> verseList = new LinkedList<>();
-            String string = "";
-
-            for (String line : linesList) {
-
-
-                if (!line.isBlank()) {
-                    string = string.concat(line + " ");
-                }
-                if (line.isBlank()) {
-                    verseList.add(string);
-                    string = "";
-                }
-            }
-
-             verses = verseList.stream().filter
-                    (IndexCreatorService::replaceEmptyLines).map(IndexCreatorService::eliminateSpecialChars).map
-                    (IndexCreatorService::allToLowerCase).collect(Collectors.toList());
-
-            long verseCount = verses.size();
-            index.setNumberOfDocuments(verseCount);
-
+            verses = createVerses(linesList);
         }
 
 
         List<String> listOfLinesNotEmptyAndNoSpecialChars = new LinkedList<>();
         if (type.equals("line")) {
 
-            // list for documet as lines
-            Stream<String> lines = linesList.stream().filter(IndexCreatorService::replaceEmptyLines);
-
-            long lineCount = lines.count();
-            index.setNumberOfDocuments(lineCount);
-
-
-             listOfLinesNotEmptyAndNoSpecialChars = linesList.stream().filter
-                    (IndexCreatorService::replaceEmptyLines).map(IndexCreatorService::eliminateSpecialChars).map
-                    (IndexCreatorService::allToLowerCase).collect(Collectors.toList());
-
+            listOfLinesNotEmptyAndNoSpecialChars = createLines(linesList);
         }
 
 
@@ -101,6 +70,48 @@ return index;
     }
 
 
+    private List<String> createLines(List<String> linesList) {
+        List<String> listOfLinesNotEmptyAndNoSpecialChars;
+        Stream<String> lines = linesList.stream().filter(IndexCreatorService::replaceEmptyLines);
+
+        long lineCount = lines.count();
+        index.setNumberOfDocuments(lineCount);
+
+
+        listOfLinesNotEmptyAndNoSpecialChars = linesList.stream().filter
+               (IndexCreatorService::replaceEmptyLines).map(IndexCreatorService::eliminateSpecialChars).map
+               (IndexCreatorService::allToLowerCase).collect(Collectors.toList());
+        return listOfLinesNotEmptyAndNoSpecialChars;
+    }
+
+
+    private List<String> createVerses(List<String> linesList) {
+        List<String> verses;
+        List<String> verseList = new LinkedList<>();
+        String string = "";
+
+        for (String line : linesList) {
+
+
+            if (!line.isBlank()) {
+                string = string.concat(line + " ");
+            }
+            if (line.isBlank()) {
+                verseList.add(string);
+                string = "";
+            }
+        }
+
+        verses = verseList.stream().filter
+               (IndexCreatorService::replaceEmptyLines).map(IndexCreatorService::eliminateSpecialChars).map
+               (IndexCreatorService::allToLowerCase).collect(Collectors.toList());
+
+        long verseCount = verses.size();
+        index.setNumberOfDocuments(verseCount);
+        return verses;
+    }
+
+
     private List<String> calculateSearchTerms(List<String> linesList) {
         Stream<String> linesToGetWords = linesList.stream();
 
@@ -122,50 +133,32 @@ return index;
 
 
     private void calculateInvertedList(List<String> vocabularyList, List<String> listOfLinesNotEmptyAndNoSpecialChars) {
+
         int allAppereances=0;
-
-
         int i=1;
 
         for (String line : listOfLinesNotEmptyAndNoSpecialChars) {
 
            List<String> wordsOfNormalizedLines = Arrays.asList(line.split(" "));
 
-
             for (String word: wordsOfNormalizedLines) {
-
-
-
 
                 for (String term : vocabularyList) {
 
-
                     if (word.equals(term)) {
-
-
-
 
                             if (index.getSearchTermByName(term) == null) {
                                 Searchterm newTerm = new Searchterm(term);
                                 index.getSearchtermList().add(newTerm);
 
-
-
                                 newTerm.addToDocumentsWehreTermAppears(i);
-                             //   newTerm.setNumberOfAppereances(newTerm.getDocumentsByNumberWhereTermAppears().size());
                                  index.getSearchTermByName(term).calculateNumberOfTermAppereances();
                             } else {
 
-
-
                                 index.getSearchTermByName(term).addToDocumentsWehreTermAppears(i);
-                               // index.getSearchTermByName(term).setNumberOfAppereances(index.getSearchTermByName(term).getDocumentsByNumberWhereTermAppears().size());
                                 index.getSearchTermByName(term).calculateNumberOfTermAppereances();
-
                             }
                         }
-
-
                     }
             }
             i++;
