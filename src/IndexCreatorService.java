@@ -2,20 +2,21 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class IndexCreatorService {
     Path file;
     Index index= new Index();
+    String type;
 
 
-    public IndexCreatorService(Path file) {
+    public IndexCreatorService(Path file, String type) {
         this.file=file;
+        this.type=type;
+
     }
 
     public Index createIndexForDocument() {
@@ -29,101 +30,63 @@ public class IndexCreatorService {
         }
 
 
+        List<String> verses = new LinkedList<>();
+        if(type.equals("verse")) {
 
-        Stream<String> lines = linesList.stream().filter(IndexCreatorService::replaceEmptyLines);
+            List<String> verseList = new LinkedList<>();
+            String string = "";
 
-
-
-        Stream<String> linesToGetWords = linesList.stream();
-
-
-
-        long lineCount = lines.count();
-        index.setNumberOfDocuments(lineCount);
+            for (String line : linesList) {
 
 
-        Stream<String> words = linesToGetWords.filter(IndexCreatorService::replaceEmptyLines).flatMap(line -> Stream.of(line.split(" ")));
-
-
-
-     long wordCount = words.count();
-
-
-
-        index.setNumberOfTotalWords(wordCount);
-
-
-        Stream<String> wordsAsDistinct = linesList.stream().filter(IndexCreatorService::replaceEmptyLines).flatMap(
-                line -> Stream.of(line.split(" ")).map(IndexCreatorService::eliminateSpecialChars));
-
-
-
-
-        Stream<String> vocabularyStringNormalizedToLowerCase = wordsAsDistinct.map(IndexCreatorService::allToLowerCase).distinct();
-
-
-
-
-        List<String> vocabularyList = vocabularyStringNormalizedToLowerCase.sorted().collect(Collectors.toList());
-
-
-
-        List<String>  listOfLinesNotEmptyAndNoSpecialChars = linesList.stream().filter(IndexCreatorService::replaceEmptyLines).map(IndexCreatorService::eliminateSpecialChars).map(IndexCreatorService::allToLowerCase).collect(Collectors.toList());
-
-
-
-        index.setNumberOfDifferentWords(vocabularyList.size());
-
-
-
-        int allAppereances=0;
-
-
-        int i=1;
-
-            for (String line : listOfLinesNotEmptyAndNoSpecialChars) {
-
-               List<String> wordsOfNormalizedLines = Arrays.asList(line.split(" "));
-
-
-                for (String word: wordsOfNormalizedLines) {
-
-
-
-
-                    for (String term : vocabularyList) {
-
-
-                        if (word.equals(term)) {
-
-
-
-
-                                if (index.getSearchTermByName(term) == null) {
-                                    Searchterm newTerm = new Searchterm(term);
-                                    index.getSearchtermList().add(newTerm);
-
-
-
-                                    newTerm.addToDocumentsWehreTermAppears(i);
-                                 //   newTerm.setNumberOfAppereances(newTerm.getDocumentsByNumberWhereTermAppears().size());
-                                     index.getSearchTermByName(term).calculateNumberOfTermAppereances();
-                                } else {
-
-
-
-                                    index.getSearchTermByName(term).addToDocumentsWehreTermAppears(i);
-                                   // index.getSearchTermByName(term).setNumberOfAppereances(index.getSearchTermByName(term).getDocumentsByNumberWhereTermAppears().size());
-                                    index.getSearchTermByName(term).calculateNumberOfTermAppereances();
-
-                                }
-                            }
-
-
-                        }
+                if (!line.isBlank()) {
+                    string = string.concat(line + " ");
                 }
-                i++;
+                if (line.isBlank()) {
+                    verseList.add(string);
+                    string = "";
+                }
+            }
+
+             verses = verseList.stream().filter
+                    (IndexCreatorService::replaceEmptyLines).map(IndexCreatorService::eliminateSpecialChars).map
+                    (IndexCreatorService::allToLowerCase).collect(Collectors.toList());
+
+            long verseCount = verses.size();
+            index.setNumberOfDocuments(verseCount);
+
         }
+
+
+        List<String> listOfLinesNotEmptyAndNoSpecialChars = new LinkedList<>();
+        if (type.equals("line")) {
+
+            // list for documet as lines
+            Stream<String> lines = linesList.stream().filter(IndexCreatorService::replaceEmptyLines);
+
+            long lineCount = lines.count();
+            index.setNumberOfDocuments(lineCount);
+
+
+             listOfLinesNotEmptyAndNoSpecialChars = linesList.stream().filter
+                    (IndexCreatorService::replaceEmptyLines).map(IndexCreatorService::eliminateSpecialChars).map
+                    (IndexCreatorService::allToLowerCase).collect(Collectors.toList());
+
+        }
+
+
+        List<String> vocabularyList = calculateSearchTerms(linesList);
+
+
+        if (type.equals("line")) {
+            calculateInvertedList(vocabularyList, listOfLinesNotEmptyAndNoSpecialChars);
+        }
+
+        if (type.equals("verse")) {
+            calculateInvertedList(vocabularyList, verses);
+        }
+
+
 
         int result = 0;
         for (Searchterm term: index.getSearchtermList()) {
@@ -132,11 +95,82 @@ public class IndexCreatorService {
         }
 
             index.setNumberOfTermDocumentAssociations(result);
+            index.calculateVerweisdichte();
 
 return index;
     }
 
 
+    private List<String> calculateSearchTerms(List<String> linesList) {
+        Stream<String> linesToGetWords = linesList.stream();
+
+        Stream<String> words = linesToGetWords.filter(IndexCreatorService::replaceEmptyLines).flatMap(line -> Stream.of(line.split(" ")));
+
+        long wordCount = words.count();
+        index.setNumberOfTotalWords(wordCount);
+
+        Stream<String> wordsAsDistinct = linesList.stream().filter(IndexCreatorService::replaceEmptyLines).flatMap(
+                line -> Stream.of(line.split(" ")).map(IndexCreatorService::eliminateSpecialChars));
+
+        Stream<String> vocabularyStringNormalizedToLowerCase = wordsAsDistinct.map(IndexCreatorService::allToLowerCase).distinct();
+
+        List<String> vocabularyList = vocabularyStringNormalizedToLowerCase.sorted().collect(Collectors.toList());
+
+        index.setNumberOfDifferentWords(vocabularyList.size());
+        return vocabularyList;
+    }
+
+
+    private void calculateInvertedList(List<String> vocabularyList, List<String> listOfLinesNotEmptyAndNoSpecialChars) {
+        int allAppereances=0;
+
+
+        int i=1;
+
+        for (String line : listOfLinesNotEmptyAndNoSpecialChars) {
+
+           List<String> wordsOfNormalizedLines = Arrays.asList(line.split(" "));
+
+
+            for (String word: wordsOfNormalizedLines) {
+
+
+
+
+                for (String term : vocabularyList) {
+
+
+                    if (word.equals(term)) {
+
+
+
+
+                            if (index.getSearchTermByName(term) == null) {
+                                Searchterm newTerm = new Searchterm(term);
+                                index.getSearchtermList().add(newTerm);
+
+
+
+                                newTerm.addToDocumentsWehreTermAppears(i);
+                             //   newTerm.setNumberOfAppereances(newTerm.getDocumentsByNumberWhereTermAppears().size());
+                                 index.getSearchTermByName(term).calculateNumberOfTermAppereances();
+                            } else {
+
+
+
+                                index.getSearchTermByName(term).addToDocumentsWehreTermAppears(i);
+                               // index.getSearchTermByName(term).setNumberOfAppereances(index.getSearchTermByName(term).getDocumentsByNumberWhereTermAppears().size());
+                                index.getSearchTermByName(term).calculateNumberOfTermAppereances();
+
+                            }
+                        }
+
+
+                    }
+            }
+            i++;
+    }
+    }
 
 
     private static String allToLowerCase(String s) {

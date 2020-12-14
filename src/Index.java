@@ -10,6 +10,7 @@ public class Index {
     private long numberOfDifferentWords=0;
     private long numberOfTermDocumentAssociations=0;
     List<Searchterm> searchtermList = new LinkedList<>();
+    private double Verweisdichte = 0;
 
 
 
@@ -54,10 +55,22 @@ public class Index {
     }
 
 
+    public double getVerweisdichte() {
+        return Verweisdichte;
+    }
 
+    public void setVerweisdichte(double verweisdichte) {
+        Verweisdichte = verweisdichte;
+    }
 
+    public void calculateVerweisdichte() {
+        long tmp = this.getNumberOfDocuments()*this.getNumberOfDifferentWords();
+        long tmp2= this.getNumberOfTermDocumentAssociations();
+        double temp3 = (double)tmp2/tmp;
+        this.setVerweisdichte(temp3);
+    }
 
-        public Searchterm getSearchTermByName(String name) {
+    public Searchterm getSearchTermByName(String name) {
             for (Searchterm term: searchtermList) {
                 if(term.getTerm().equals(name)) {
                     return term;
