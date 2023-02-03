@@ -3,14 +3,18 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 
-
+/**
+ * This class is responsible for printing the parameters and inverted list of the given index.
+ * The class is instantiated with the Index object and contains two methods for printing.
+ *
+ */
 public class PrintService {
     Index index;
-    int lineCounter=1;
+    int lineCounter;
 
     public PrintService(Index resultIndex) {
         this.index=resultIndex;
-
+        lineCounter=1;
     }
 
 
@@ -20,8 +24,6 @@ public class PrintService {
        System.out.println("n is: " + index.getNumberOfDifferentWords());
        System.out.println("f is: " + index.getNumberOfTermDocumentAssociations());
        System.out.println("Verweisdichte is: " + index.getVerweisdichte());
-
-
     }
 
     public void printInvertedList(boolean gaps) {
@@ -47,16 +49,13 @@ public class PrintService {
              for (int value : numberList) {
                  builder.append(value + ", ");
              }
-           builder.deleteCharAt(builder.length()-2);
-             String text = builder.toString();
+             // delete last ,
+            builder.deleteCharAt(builder.length()-2);
+            String text = builder.toString();
             text = text.trim();
 
             System.out.println(lineCounter + " " + term.getTerm() + " [" + term.getNumberOfAppereances() + "; " + text + "]");
             lineCounter++;
-
-
-
-
         }
 
     }

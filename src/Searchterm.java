@@ -8,7 +8,12 @@ public class Searchterm {
   List<Integer> documentsByNumberWhereTermAppears= new LinkedList<>();
    List<Integer> dGaps= new LinkedList<>();
 
-
+    /**
+     * A class representing a search term in a collection of documents.
+     *
+     * The class stores information about the term, the number of times it appears,
+     * the documents where it appears, and if wanted by the User the gaps between those documents.
+     */
     public Searchterm(String term) {
         this.term = term;
     }
@@ -41,9 +46,10 @@ public class Searchterm {
 
     }
 
-        public void calculateNumberOfTermAppereances() {
+
+    public void calculateNumberOfTermAppereances() {
             this.setNumberOfAppereances(getDocumentsByNumberWhereTermAppears().size());
-        }
+    }
 
     public List<Integer> getdGaps() {
         return dGaps;
@@ -53,8 +59,12 @@ public class Searchterm {
         this.dGaps = dGaps;
     }
 
+
+    /**
+     * Calculates the difference in document numbers between each appearance of the term.
+     * The difference is stored in the `dGaps` list.
+     */
     public void calculateDGaps () {
-       // if (this.getDocumentsByNumberWhereTermAppears().size()>1) {
 
             Integer[] documentNumbers = new Integer[this.getDocumentsByNumberWhereTermAppears().size()];
              documentNumbers = this.getDocumentsByNumberWhereTermAppears().toArray(documentNumbers);
@@ -70,8 +80,7 @@ public class Searchterm {
                  documentNumbers[i] = tmp2[i] - tmp2[i - 1];
              }
              dGaps = Arrays.asList(documentNumbers);
-       // }
-        }
+    }
 
 }
 

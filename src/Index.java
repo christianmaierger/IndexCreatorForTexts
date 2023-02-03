@@ -3,6 +3,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+
+/**
+ * The Index class holds information about the search terms, number of documents,
+ * total number of words, number of different words, and number of term-document associations
+ * in a search engine.
+ * It also calculates the `verweisdichte` which is the ratio of term-document associations to the product of
+ * the number of documents and number of different words.
+ */
 public class Index {
 
     private long numberOfDocuments=0;
@@ -15,7 +23,6 @@ public class Index {
 
 
     public Index() {
-
     }
 
     public long getNumberOfDocuments() {
