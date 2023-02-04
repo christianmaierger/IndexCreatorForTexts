@@ -1,3 +1,10 @@
+import org.apache.poi.hwpf.HWPFDocument;
+import org.apache.poi.hwpf.extractor.WordExtractor;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.apache.poi.xwpf.usermodel.XWPFRun;
+
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -5,6 +12,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
 
 /**
  * The class `IndexCreatorService` provides a service to create an index for a given file.
@@ -33,23 +41,23 @@ public class IndexCreatorService {
      * Creates the index for the given file.
      * @return The created index.
      */
-    public Index createIndexForDocument() {
+    public Index createIndexForDocument() throws IOException {
+            List<String> linesList = readFile(file);
+            // List of verses or lines
+            List<String> document = getDocument(linesList, type);
+            // list of all distinct words from the text file
+            List<String> vocabularyList = calculateSearchTerms(linesList);
+            // calculates a so called inverted list that holds all words and their occurances in the text
+            calculateInvertedList(vocabularyList, document);
 
-        List<String> linesList = readFile(file);
-        // List of verses or lines
-        List<String> document = getDocument(linesList, type);
-        // list of all distinct words from the text file
-        List<String> vocabularyList = calculateSearchTerms(linesList);
-        // calculates a so called inverted list that holds all words and their occurances in the text
-        calculateInvertedList(vocabularyList, document);
+            // stream calculates total no of appereances of one term in textfile
+            index.setNumberOfTermDocumentAssociations(index.getSearchtermList().stream()
+                    .mapToInt(Searchterm::getNumberOfAppereances)
+                    .sum());
+            // ratio of term-document associations to the product of the number of documents and number of different words.
+            index.calculateVerweisdichte();
+            return index;
 
-        // stream calculates total no of appereances of one term in textfile
-        index.setNumberOfTermDocumentAssociations(index.getSearchtermList().stream()
-                .mapToInt(Searchterm::getNumberOfAppereances)
-                .sum());
-        // ratio of term-document associations to the product of the number of documents and number of different words.
-        index.calculateVerweisdichte();
-        return index;
     }
 
     /**
@@ -59,12 +67,53 @@ public class IndexCreatorService {
      */
     private List<String> readFile(Path file) {
         try {
-            return Files.readAllLines(file, StandardCharsets.UTF_8);
+            String fileExtension = file.getFileName().toString().toLowerCase().substring(file.getFileName().toString().lastIndexOf(".") + 1);
+            if (fileExtension.equals("txt")) {
+                return Files.readAllLines(file, StandardCharsets.UTF_8);
+            } else if (fileExtension.equals("doc") || fileExtension.equals("docx")) {
+                System.out.println("will now read word");
+                return readWordFile(file);
+
+            } else {
+                System.out.println("Unsupported file format.");
+                return Collections.emptyList();
+            }
         } catch (IOException e) {
             e.printStackTrace();
             return Collections.emptyList();
         }
     }
+
+
+    private List<String> readWordFile(Path file) {
+        List<String> lines = new ArrayList<>();
+        try (FileInputStream fis = new FileInputStream(file.toFile())) {
+            XWPFDocument docx = new XWPFDocument(fis);
+            StringBuilder lineBuilder = new StringBuilder();
+            for (XWPFParagraph paragraph : docx.getParagraphs()) {
+                for (XWPFRun run : paragraph.getRuns()) {
+                    String text = run.toString();
+                    int index = text.indexOf("\n");
+                    if (index == -1) {
+                        lineBuilder.append(text);
+                    } else {
+                        lineBuilder.append(text.substring(0, index));
+                        lines.add(lineBuilder.toString());
+                        lineBuilder = new StringBuilder();
+                        lineBuilder.append(text.substring(index + 1));
+                    }
+                }
+                lines.add(lineBuilder.toString());
+                lineBuilder = new StringBuilder();
+            }
+            System.out.println("Word read without exc");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return lines;
+    }
+
+
 
     /**
      * Gets the document as a list of lines or verses, based on the type.

@@ -18,7 +18,7 @@ public class PrintService {
     }
 
 
-    public void printParametersAkaKenngrößen() {
+    public void printParametersAkaKenngroeßen() {
        System.out.println("N is: " + index.getNumberOfDocuments());
        System.out.println("F is: " + index.getNumberOfTotalWords());
        System.out.println("n is: " + index.getNumberOfDifferentWords());

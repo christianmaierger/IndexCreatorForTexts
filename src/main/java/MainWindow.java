@@ -6,6 +6,7 @@ import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+
 /**
  * The Main class is the entry point for the application. It handles input from the user to retrieve the
  * file to be indexed and the granularity of the documents. The result is printed to the console in the form
@@ -65,18 +66,23 @@ public class MainWindow extends JFrame {
             String filePath = filePathField.getText();
             String granularity = (String) granularityComboBox.getSelectedItem();
             boolean includeDgap = dgapCheckBox.isSelected();
-
             Path file = Paths.get(filePath);
+            try {
+
             IndexCreatorService indexCreator = new IndexCreatorService(file, granularity);
-
-
             Index resultIndex = indexCreator.createIndexForDocument();
 
             PrintService printService = new PrintService(resultIndex);
-            printService.printParametersAkaKenngrößen();
+            printService.printParametersAkaKenngroeßen();
             printService.printInvertedList(includeDgap);
-
             JOptionPane.showMessageDialog(this, "Index created successfully");
+            } catch (Exception exception) {
+               JOptionPane.showMessageDialog(this, exception.getMessage());
+               System.out.println("jetzt schauen wir mal");
+            }
+
+
+
         });
         add(submitButton, BorderLayout.SOUTH);
 
