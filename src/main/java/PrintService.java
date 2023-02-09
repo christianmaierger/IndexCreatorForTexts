@@ -15,23 +15,20 @@ public class PrintService {
     }
 
 
-    public void printParametersAkaKenngroeßen(String granularity) {
+    public void printParametersAkaKenngroessen(String granularity) {
        System.out.println("N is: " + index.getNumberOfDocuments() + " (Number of " + granularity + "s)");
        System.out.println("F is: " + index.getNumberOfTotalWords() + " (Number of Words in total)");
        System.out.println("n is: " + index.getNumberOfDifferentWords() + " (Number of different Words)");
        System.out.println("f is: " + index.getNumberOfTermDocumentAssociations() + " (Number of Term to Document Associations)");
-       System.out.println("Verweisdichte is: " + index.getVerweisdichte());
+       System.out.println("Verweisdichte is: " + index.getVerweisdichte() + "(  Associations/(Documents * totalWords) )" );
     }
 
     public void printInvertedList() {
       Map<String, List<Integer>> resultMap = index.getSearchTermMap();
+      // get keys from HashMap as List to sort
         List<String>  resultList = new ArrayList<>(resultMap.keySet());
-        // alphabetically sort the terms/keay from the map
-                resultList.sort(new Comparator<>() {
-            public int compare(String q1, String q2) {
-                return q1.compareTo(q2);
-            }
-        } );
+        // alphabetically sort the terms/keys from the map
+                resultList.sort(String::compareTo);
 
         List<Integer> numberList;
          for(String searchTerm: resultList) {
@@ -43,7 +40,7 @@ public class PrintService {
              for (int value : numberList) {
                  builder.append(value + ", ");
              }
-             // delete last ,
+             // delete last "," so it does not show in results printout
             builder.deleteCharAt(builder.length()-2);
             String text = builder.toString();
             text = text.trim();

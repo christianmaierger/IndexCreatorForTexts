@@ -115,9 +115,9 @@ public class IndexCreatorService {
                 .map(IndexCreatorService::allToLowerCase);
 
         List<String> resultList = new LinkedList<>();
-        if (type.equals("line")) {
+        if (type.equals("Line")) {
             resultList = getLinesAndSetNumberOFDocuments(linesStream, removeEmptyLines);
-        } else if (type.equals("verse")) {
+        } else if (type.equals("Verse")) {
             resultList = getVersesAndSetNumberOfDocuments(linesStream);
         }
 
@@ -189,7 +189,6 @@ public class IndexCreatorService {
                 .count();
 
         index.setNumberOfTotalWords(wordCount);
-
     }
 
     /**
@@ -246,7 +245,6 @@ public class IndexCreatorService {
         // ratio of term-document associations to the product of the number of documents and number of different words.
         index.setNumberOfTermDocumentAssociations(sum);
         index.calculateVerweisdichte();
-
         }
 
 

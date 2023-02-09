@@ -15,11 +15,12 @@ public class Index {
     private long numberOfDifferentWords=0;
     private long numberOfTermDocumentAssociations=0;
     private Map<String, List<Integer>> searchTermMap= new HashMap<>();
-    private double Verweisdichte = 0;
+    private double Verweisdichte = 0; // noOf Associations/(noOfDocuments * totalWords)
 
 
 
     public Index() {
+
     }
 
     public Map<String, List<Integer>> getSearchTermMap() {
