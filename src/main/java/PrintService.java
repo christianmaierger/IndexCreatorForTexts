@@ -1,4 +1,7 @@
+import javax.swing.*;
+import java.awt.*;
 import java.util.*;
+import java.util.List;
 
 /**
  * This class is responsible for printing the parameters and inverted list of the given index.
@@ -16,11 +19,13 @@ public class PrintService {
 
 
     public void printParametersAkaKenngroessen(String granularity) {
-       System.out.println("N is: " + index.getNumberOfDocuments() + " (Number of " + granularity + "s)");
-       System.out.println("F is: " + index.getNumberOfTotalWords() + " (Number of Words in total)");
-       System.out.println("n is: " + index.getNumberOfDifferentWords() + " (Number of different Words)");
-       System.out.println("f is: " + index.getNumberOfTermDocumentAssociations() + " (Number of Term to Document Associations)");
-       System.out.println("Verweisdichte is: " + index.getVerweisdichte() + "(  Associations/(Documents * totalWords) )" );
+        StringBuilder builder = new StringBuilder();
+        builder.append("N is: " + index.getNumberOfDocuments() + " (Number of " + granularity + "s)" + System.lineSeparator());
+        builder.append("F is: " + index.getNumberOfTotalWords() + " (Number of Words in total)" + System.lineSeparator());
+        builder.append("n is: " + index.getNumberOfDifferentWords() + " (Number of different Words)" + System.lineSeparator());
+        builder.append("f is: " + index.getNumberOfTermDocumentAssociations() + " (Number of Term to Document Associations)" + System.lineSeparator());
+        builder.append("Verweisdichte is: " + index.getVerweisdichte() + " (Associations/(Documents * totalWords))" + System.lineSeparator());
+        this.printToPopUp(builder);
     }
 
     public void printInvertedList() {
@@ -29,7 +34,7 @@ public class PrintService {
         List<String>  resultList = new ArrayList<>(resultMap.keySet());
         // alphabetically sort the terms/keys from the map
                 resultList.sort(String::compareTo);
-
+        StringBuilder builder2 = new StringBuilder();
         List<Integer> numberList;
          for(String searchTerm: resultList) {
 
@@ -45,9 +50,21 @@ public class PrintService {
             String text = builder.toString();
             text = text.trim();
 
-            System.out.println(lineCounter + " " + searchTerm + " [" + noOfAppearances + "; " + text + "]");
+            builder2.append(lineCounter + " " + searchTerm + " [" + noOfAppearances + "; " + text + "]" + System.lineSeparator());
             lineCounter++;
         }
+        this.printToPopUp(builder2);
+    }
 
+    private void printToPopUp(StringBuilder builder) {
+        JTextArea textArea = new JTextArea();
+        JScrollPane scrollPane = new JScrollPane(textArea);
+        scrollPane.setPreferredSize(new Dimension(400, 300));
+        textArea.setText(builder.toString());
+        textArea.setEditable(false);
+        textArea.setLineWrap(true);
+        textArea.setWrapStyleWord(true);
+
+        JOptionPane.showMessageDialog(null, scrollPane, "Inverted List", JOptionPane.INFORMATION_MESSAGE);
     }
 }
