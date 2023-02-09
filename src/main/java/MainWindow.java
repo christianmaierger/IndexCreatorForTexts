@@ -23,10 +23,10 @@ public class MainWindow extends JFrame {
         setLayout(new BorderLayout());
 
         JPanel inputPanel = new JPanel();
-        inputPanel.setLayout(new GridLayout(3, 2));
+        inputPanel.setLayout(new GridLayout(4, 2));
 
 
-        JLabel filePathLabel = new JLabel("Path to TXT File:");
+        JLabel filePathLabel = new JLabel("Path to TXT/Word File:");
         JTextField filePathField = new JTextField();
         JButton browseButton = new JButton("Browse");
         inputPanel.add(filePathLabel);
@@ -45,6 +45,14 @@ public class MainWindow extends JFrame {
         JCheckBox dgapCheckBox = new JCheckBox();
         inputPanel.add(dgapLabel);
         inputPanel.add(dgapCheckBox);
+
+        JComponent j2 = new JComponent() {};
+        inputPanel.add(j2);
+
+        JLabel linesLabel = new JLabel("Remove Empty Lines:");
+        JCheckBox linesCheckBox = new JCheckBox();
+        inputPanel.add(linesLabel);
+        inputPanel.add(linesCheckBox);
 
         add(inputPanel, BorderLayout.CENTER);
 
@@ -66,15 +74,16 @@ public class MainWindow extends JFrame {
             String filePath = filePathField.getText();
             String granularity = (String) granularityComboBox.getSelectedItem();
             boolean includeDgap = dgapCheckBox.isSelected();
+            boolean removeLines = linesCheckBox.isSelected();
             Path file = Paths.get(filePath);
             try {
 
             IndexCreatorService indexCreator = new IndexCreatorService(file, granularity);
-            Index resultIndex = indexCreator.createIndexForDocument();
+            Index resultIndex = indexCreator.createIndexForDocument(removeLines,includeDgap);
 
             PrintService printService = new PrintService(resultIndex);
-            printService.printParametersAkaKenngroeßen();
-            printService.printInvertedList(includeDgap);
+            printService.printParametersAkaKenngroeßen(granularity);
+            printService.printInvertedList();
             JOptionPane.showMessageDialog(this, "Index created successfully");
             } catch (Exception exception) {
                JOptionPane.showMessageDialog(this, exception.getMessage());

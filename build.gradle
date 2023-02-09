@@ -17,6 +17,10 @@ dependencies {
     implementation 'org.apache.poi:poi-ooxml:4.1.2'
 }
 
-
+jar {
+    manifest {
+        attributes 'Main-Class': 'MainWindow'
+    }
+}
 
 mainClassName = "MainWindow"

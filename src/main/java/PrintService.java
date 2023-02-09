@@ -1,7 +1,4 @@
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 
 /**
  * This class is responsible for printing the parameters and inverted list of the given index.
@@ -18,32 +15,29 @@ public class PrintService {
     }
 
 
-    public void printParametersAkaKenngroeßen() {
-       System.out.println("N is: " + index.getNumberOfDocuments());
-       System.out.println("F is: " + index.getNumberOfTotalWords());
-       System.out.println("n is: " + index.getNumberOfDifferentWords());
-       System.out.println("f is: " + index.getNumberOfTermDocumentAssociations());
+    public void printParametersAkaKenngroeßen(String granularity) {
+       System.out.println("N is: " + index.getNumberOfDocuments() + " (Number of " + granularity + "s)");
+       System.out.println("F is: " + index.getNumberOfTotalWords() + " (Number of Words in total)");
+       System.out.println("n is: " + index.getNumberOfDifferentWords() + " (Number of different Words)");
+       System.out.println("f is: " + index.getNumberOfTermDocumentAssociations() + " (Number of Term to Document Associations)");
        System.out.println("Verweisdichte is: " + index.getVerweisdichte());
     }
 
-    public void printInvertedList(boolean gaps) {
-      List<Searchterm> resultList = index.getSearchtermList();
-
-        resultList.sort(new Comparator<>() {
-            public int compare(Searchterm q1, Searchterm q2) {
-                return q1.getTerm().compareTo(q2.getTerm());
+    public void printInvertedList() {
+      Map<String, List<Integer>> resultMap = index.getSearchTermMap();
+        List<String>  resultList = new ArrayList<>(resultMap.keySet());
+        // alphabetically sort the terms/keay from the map
+                resultList.sort(new Comparator<>() {
+            public int compare(String q1, String q2) {
+                return q1.compareTo(q2);
             }
         } );
 
         List<Integer> numberList;
+         for(String searchTerm: resultList) {
 
-         for(Searchterm term: resultList) {
-             if(!gaps) {
-                 numberList = term.getDocumentsByNumberWhereTermAppears();
-             } else {
-                 term.calculateDGaps();
-                 numberList = term.getdGaps();
-             }
+             numberList = resultMap.get(searchTerm);
+             int noOfAppearances = numberList.size();
 
              StringBuilder builder = new StringBuilder();
              for (int value : numberList) {
@@ -54,7 +48,7 @@ public class PrintService {
             String text = builder.toString();
             text = text.trim();
 
-            System.out.println(lineCounter + " " + term.getTerm() + " [" + term.getNumberOfAppereances() + "; " + text + "]");
+            System.out.println(lineCounter + " " + searchTerm + " [" + noOfAppearances + "; " + text + "]");
             lineCounter++;
         }
 

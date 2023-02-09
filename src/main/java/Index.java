@@ -1,7 +1,4 @@
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 
 /**
@@ -17,12 +14,20 @@ public class Index {
     private long numberOfTotalWords=0;
     private long numberOfDifferentWords=0;
     private long numberOfTermDocumentAssociations=0;
-    List<Searchterm> searchtermList = new LinkedList<>();
+    private Map<String, List<Integer>> searchTermMap= new HashMap<>();
     private double Verweisdichte = 0;
 
 
 
     public Index() {
+    }
+
+    public Map<String, List<Integer>> getSearchTermMap() {
+        return searchTermMap;
+    }
+
+    public void setSearchTermMap(Map<String, List<Integer>> searchTermMap) {
+        this.searchTermMap = searchTermMap;
     }
 
     public long getNumberOfDocuments() {
@@ -57,10 +62,6 @@ public class Index {
         this.numberOfTermDocumentAssociations = numberOfTermDocumentAssociations;
     }
 
-    public void setNumberOfTermDocumentAssociations(long numberOfTermDocumentAssociations) {
-        this.numberOfTermDocumentAssociations = numberOfTermDocumentAssociations;
-    }
-
 
     public double getVerweisdichte() {
         return Verweisdichte;
@@ -77,20 +78,5 @@ public class Index {
         this.setVerweisdichte(temp3);
     }
 
-    public Searchterm getSearchTermByName(String name) {
-            for (Searchterm term: searchtermList) {
-                if(term.getTerm().equals(name)) {
-                    return term;
-                }
-            }
-        return null;}
-
-    public List<Searchterm> getSearchtermList() {
-        return searchtermList;
-    }
-
-    public void setSearchtermList(List<Searchterm> searchtermList) {
-        this.searchtermList = searchtermList;
-    }
 }
 

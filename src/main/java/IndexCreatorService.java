@@ -1,8 +1,5 @@
-import org.apache.poi.hwpf.HWPFDocument;
-import org.apache.poi.hwpf.extractor.WordExtractor;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
-import org.apache.poi.xwpf.usermodel.XWPFRun;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -10,6 +7,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -39,29 +38,26 @@ public class IndexCreatorService {
 
     /**
      * Creates the index for the given file.
+     * @param removeLines boolean to indicate if empty lines should be removed and not counted.
      * @return The created index.
+     *
      */
-    public Index createIndexForDocument() throws IOException {
+    public Index createIndexForDocument(boolean removeLines, boolean dgaps ) throws IOException {
             List<String> linesList = readFile(file);
-            // List of verses or lines
-            List<String> document = getDocument(linesList, type);
+            // List of verses or lines with empty lines removed or not in case of lines
+            List<String> documentList = getDocument(linesList, type, removeLines);
             // list of all distinct words from the text file
-            List<String> vocabularyList = calculateSearchTerms(linesList);
+            calculateSearchTermsNumber(documentList);
+            Map<String, List<Integer>> listOfWordsWithDocumentNumbersAppended = createMapOfWordsAndDocumentNumbers(documentList);
             // calculates a so called inverted list that holds all words and their occurances in the text
-            calculateInvertedList(vocabularyList, document);
+            calculateInvertedList(listOfWordsWithDocumentNumbersAppended, dgaps);
 
-            // stream calculates total no of appereances of one term in textfile
-            index.setNumberOfTermDocumentAssociations(index.getSearchtermList().stream()
-                    .mapToInt(Searchterm::getNumberOfAppereances)
-                    .sum());
-            // ratio of term-document associations to the product of the number of documents and number of different words.
-            index.calculateVerweisdichte();
             return index;
 
     }
 
     /**
-     * Reads the file into a list of strings.
+     * Reads a .txt file into a list of strings.
      * @param file The file to read.
      * @return The list of strings.
      */
@@ -71,7 +67,6 @@ public class IndexCreatorService {
             if (fileExtension.equals("txt")) {
                 return Files.readAllLines(file, StandardCharsets.UTF_8);
             } else if (fileExtension.equals("doc") || fileExtension.equals("docx")) {
-                System.out.println("will now read word");
                 return readWordFile(file);
 
             } else {
@@ -84,28 +79,22 @@ public class IndexCreatorService {
         }
     }
 
-
+    /**
+     * Reads a word file (.docx/doc) into a list of strings.
+     * @param file The file to read.
+     * @return The list of strings.
+     */
     private List<String> readWordFile(Path file) {
         List<String> lines = new ArrayList<>();
         try (FileInputStream fis = new FileInputStream(file.toFile())) {
             XWPFDocument docx = new XWPFDocument(fis);
             StringBuilder lineBuilder = new StringBuilder();
-            for (XWPFParagraph paragraph : docx.getParagraphs()) {
-                for (XWPFRun run : paragraph.getRuns()) {
-                    String text = run.toString();
-                    int index = text.indexOf("\n");
-                    if (index == -1) {
-                        lineBuilder.append(text);
-                    } else {
-                        lineBuilder.append(text.substring(0, index));
-                        lines.add(lineBuilder.toString());
-                        lineBuilder = new StringBuilder();
-                        lineBuilder.append(text.substring(index + 1));
-                    }
-                }
-                lines.add(lineBuilder.toString());
-                lineBuilder = new StringBuilder();
+            List<XWPFParagraph> paragraphs = docx.getParagraphs();
+            for (XWPFParagraph paragraph : paragraphs) {
+                lineBuilder.append(paragraph.getText());
             }
+            String[] splitLines = lineBuilder.toString().split("\n");
+            lines = Arrays.asList(splitLines);
             System.out.println("Word read without exc");
         } catch (Exception e) {
             e.printStackTrace();
@@ -114,61 +103,75 @@ public class IndexCreatorService {
     }
 
 
-
     /**
      * Gets the document as a list of lines or verses, based on the type.
      * @param linesList The list of strings to process.
      * @param type The type of document, either "line" or "verse".
      * @return The list of lines or verses.
      */
-    private List<String> getDocument(List<String> linesList, String type) {
+    private List<String> getDocument(List<String> linesList, String type, boolean removeEmptyLines) {
+
+        Supplier<Stream<String>> linesStream = () -> linesList.stream().map(IndexCreatorService::eliminateSpecialChars)
+                .map(IndexCreatorService::allToLowerCase);
+
+        List<String> resultList = new LinkedList<>();
         if (type.equals("line")) {
-            return getLines(linesList);
+            resultList = getLinesAndSetNumberOFDocuments(linesStream, removeEmptyLines);
         } else if (type.equals("verse")) {
-            return getVerses(linesList);
-        } else {
-            return Collections.emptyList();
+            resultList = getVersesAndSetNumberOfDocuments(linesStream);
         }
+
+        return resultList;
     }
 
     /**
      *Get the document as a list of lines based on the input list of strings.
-     *@param linesList The list of strings to process.
+     *@param lines The list of strings to process.
      *@return The list of lines.
      */
-    private List<String> getLines(List<String> linesList) {
-        Stream<String> lines = linesList.stream().filter(IndexCreatorService::replaceEmptyLines);
-        index.setNumberOfDocuments((int) lines.count());
+    private List<String> getLinesAndSetNumberOFDocuments(Supplier<Stream<String>> lines, boolean removeEmptyLines) {
 
-        return linesList.stream().filter(IndexCreatorService::replaceEmptyLines)
-                .map(IndexCreatorService::eliminateSpecialChars)
-                .map(IndexCreatorService::allToLowerCase)
-                .collect(Collectors.toList());
+        if (removeEmptyLines) {
+            index.setNumberOfDocuments((int) lines.get().filter(IndexCreatorService::replaceEmptyLines).count());
+        } else {
+            index.setNumberOfDocuments((int) lines.get().count());
+        }
+        return lines.get().collect(Collectors.toList());
     }
 
     /**
      * This method takes a list of lines and returns a list of verses by removing blank lines and
      * aggregating non-blank lines. It also sets the number of documents (here meaning verses) in the index.
      *
-     * @param linesList the list of lines to be processed.
+     * @param lines the list of lines to be processed.
      * @return the list of verses.
      */
-    private List<String> getVerses(List<String> linesList) {
+    private List<String> getVersesAndSetNumberOfDocuments(Supplier<Stream<String>> lines) {
+
         List<String> verseList = new LinkedList<>();
         StringBuilder sb = new StringBuilder();
-        for (String line : linesList) {
+        // for each line it is checked if blank or not
+        lines.get().forEach(line -> {
+            // trim to remove trailing whitespaces
+            line = line.trim();
+            // if line is not blank it gets appended to stringbuilder delimetered by " "
             if (!line.isBlank()) {
                 sb.append(line).append(" ");
-            } else {
-                verseList.add(sb.toString());
-                sb = new StringBuilder();
+                // if a blank line comes, it means verse is over and concattenated string will be added to verseList
+            } else if (!sb.isEmpty()) {
+                // trim again to get rid of last appended " " and add whole verse to verseList
+                verseList.add(sb.toString().trim());
+                // stringbuilder is deleted, so next verse can be put together starting with an empty string
+                sb.delete(0, sb.length()-1);
             }
+        });
+        // if last line is not blank, the verse in the strinbuilder has to be still added to list
+        if (sb.toString().trim().length() > 0) {
+            verseList.add(sb.toString().trim());
         }
-        index.setNumberOfDocuments(verseList.size());
-        return verseList.stream().filter(IndexCreatorService::replaceEmptyLines)
-                .map(IndexCreatorService::eliminateSpecialChars)
-                .map(IndexCreatorService::allToLowerCase)
-                .collect(Collectors.toList());
+
+        index.setNumberOfDocuments((int) verseList.size());
+        return verseList;
     }
 
     /**
@@ -176,67 +179,76 @@ public class IndexCreatorService {
      * counting the number of distinct words, and normalizing the words to lowercase.
      * It also sets the number of total words and the number of different words in the index.
      *
-     * @param linesList the list of lines to be processed.
+     * @param documentList the list of lines to be processed.
      * @return the list of search terms.
      */
-    private List<String> calculateSearchTerms(List<String> linesList) {
-        Stream<String> linesToGetWords = linesList.stream();
+    private void calculateSearchTermsNumber(List<String> documentList) {
+        long wordCount = documentList.stream()
+                .filter(IndexCreatorService::replaceEmptyLines)
+                .flatMap(line -> Arrays.stream(line.split(" ")))
+                .count();
 
-        Stream<String> words = linesToGetWords.filter(IndexCreatorService::replaceEmptyLines).flatMap(line -> Stream.of(line.split(" ")));
-
-        long wordCount = words.count();
         index.setNumberOfTotalWords(wordCount);
 
-        Stream<String> wordsAsDistinct = linesList.stream().filter(IndexCreatorService::replaceEmptyLines).flatMap(
-                line -> Stream.of(line.split(" ")).map(IndexCreatorService::eliminateSpecialChars));
+    }
 
-        Stream<String> vocabularyStringNormalizedToLowerCase = wordsAsDistinct.map(IndexCreatorService::allToLowerCase).distinct();
+    /**
+     * Creates a list of words with document numbers appended.
+     * @param documentList The list of lines or verses.
+     * @return The list of words with document numbers appended.
+     */
+    private Map<String, List<Integer>> createMapOfWordsAndDocumentNumbers(List<String> documentList) {
 
-        List<String> vocabularyList = vocabularyStringNormalizedToLowerCase.sorted().collect(Collectors.toList());
-
-        index.setNumberOfDifferentWords(vocabularyList.size());
-        return vocabularyList;
+        Map<String, List<Integer>> wordsAndDocumentNumbersMap = new HashMap<>();
+        for (int lineIndex = 0; lineIndex < documentList.size(); lineIndex++) {
+            String line = documentList.get(lineIndex);
+            String[] words = line.split(" ");
+            for (String word : words) {
+                if (word != "" && word.length() !=0) {
+                    List<Integer> lineNumbers = wordsAndDocumentNumbersMap.getOrDefault(word, new ArrayList<>());
+                    if (!lineNumbers.contains(lineIndex + 1)) {
+                        lineNumbers.add(lineIndex + 1);
+                        wordsAndDocumentNumbersMap.put(word, lineNumbers);
+                    }
+                }
+            }
+        }
+        index.setNumberOfDifferentWords(wordsAndDocumentNumbersMap.size());
+        return wordsAndDocumentNumbersMap;
     }
 
     /**
      * This method calculates the inverted list for a given vocabulary list and list of lines.
      * The inverted list maps each search term to the documents (meaining line or verse) where it appears.
      *
-     * @param vocabularyList A list of search terms.
-     * @param listOfLinesNotEmptyAndNoSpecialChars A list of lines without special characters.
+     * @param documentMap A Map of terms without special characters and their document numbers, lines/verses where they can be found.
      */
-    private void calculateInvertedList(List<String> vocabularyList, List<String> listOfLinesNotEmptyAndNoSpecialChars) {
-        // no of line or verse
-        int documentNumber=1;
-        List<String> wordsOfNormalizedLines = new LinkedList<>();
+    private void calculateInvertedList(Map<String, List<Integer>> documentMap, boolean dgaps) {
 
-        // unfortunatelly three nested loops are neccessary as contains() has the same complexity
-        // and would miss double occurences, also it is an easy way to keep trak of line/verse number no
-        // as it has to be mapped to the terms in the text file
-
-        // split lines/verses into words
-        for (String line : listOfLinesNotEmptyAndNoSpecialChars) {
-            wordsOfNormalizedLines = Arrays.asList(line.split(" "));
-            // now match all words from the lines and verses with the searchTerms from index and add them if not already
-            //saved as term or otherwise add count and line for the term matched with a word
-            for (String word: wordsOfNormalizedLines) {
-                for (String term : vocabularyList) {
-                    if (word.equals(term)) {
-                            if (index.getSearchTermByName(term) == null) {
-                                Searchterm newTerm = new Searchterm(term);
-                                index.getSearchtermList().add(newTerm);
-                                newTerm.addToDocumentsWehreTermAppears(documentNumber);
-                                index.getSearchTermByName(term).calculateNumberOfTermAppereances();
-                            } else {
-                                index.getSearchTermByName(term).addToDocumentsWehreTermAppears(documentNumber);
-                                index.getSearchTermByName(term).calculateNumberOfTermAppereances();
-                            }
-                        }
-                    }
+        // if user wants dgaps meaning distance between terms instead of their line/verse numbers
+        // then here the first document number is left to be and then the indexes are subtracted to calculate "distance"
+        if (dgaps) {
+            for (Map.Entry<String, List<Integer>> entry : documentMap.entrySet()) {
+                List<Integer> values = entry.getValue();
+                for (int i = 1; i < values.size(); i++) {
+                    values.set(i, values.get(i) - values.get(i - 1));
+                }
             }
-            documentNumber++;
+
         }
-    }
+
+        index.setSearchTermMap(documentMap);
+        AtomicInteger i = new AtomicInteger();
+        int sum =0;
+        for (List <Integer> list : index.getSearchTermMap().values()) {
+            sum+=  list.size();
+        }
+        // ratio of term-document associations to the product of the number of documents and number of different words.
+        index.setNumberOfTermDocumentAssociations(sum);
+        index.calculateVerweisdichte();
+
+        }
+
 
 
     private static String allToLowerCase(String s) {
