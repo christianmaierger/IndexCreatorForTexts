@@ -111,7 +111,10 @@ public class IndexCreatorService {
      */
     private List<String> getDocument(List<String> linesList, String type, boolean removeEmptyLines) {
 
-        Supplier<Stream<String>> linesStream = () -> linesList.stream().map(IndexCreatorService::eliminateSpecialChars)
+        linesList = removeTrailingEmptyLines(linesList);
+
+        List<String> finalLinesList = linesList;
+        Supplier<Stream<String>> linesStream = () -> finalLinesList.stream().map(IndexCreatorService::eliminateSpecialChars)
                 .map(IndexCreatorService::allToLowerCase);
 
         List<String> resultList = new LinkedList<>();
@@ -123,6 +126,8 @@ public class IndexCreatorService {
 
         return resultList;
     }
+
+
 
     /**
      *Get the document as a list of lines based on the input list of strings.
@@ -266,5 +271,16 @@ public class IndexCreatorService {
         return s;
     }
 
+    private static List<String> removeTrailingEmptyLines(List<String> list) {
+        int index = list.size() - 1;
+        int indexFromStart = 0;
+        while (index >= 0 && list.get(index).isEmpty()) {
+            list.remove(index--);
+        }
+        while (indexFromStart < list.size() && list.get(index).isEmpty()) {
+            list.remove(index++);
+        }
+        return list;
+    }
 
 }
