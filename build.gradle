@@ -21,19 +21,21 @@ application {
 }
 
 publishing {
+
     publications {
         maven(MavenPublication) {
             from components.java
-            groupId = 'com.example'
+            groupId = 'chrismaierger/'
             artifactId = 'IndexCreatorForTexts'
-            version = '1.0.0'
+            version = '1'
         }
     }
+
 
     repositories {
         maven {
             name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/${project.group}/${project.name}")
+            url = "https://maven.pkg.github.com/"
             credentials {
                 username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
                 password = project.findProperty("gpr.key") ?: System.getenv("PASSWORD")
