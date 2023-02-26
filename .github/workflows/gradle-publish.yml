@@ -31,7 +31,7 @@ jobs:
     - name: Publish JAR to GitHub Packages
       uses: gradle/gradle-build-action@v1
       with:
-        gradle-version: '7.2.0'
+        gradle-version: '7.6'
         arguments: publishToGitHub
       env:
         USERNAME: ${{ github.actor }}
