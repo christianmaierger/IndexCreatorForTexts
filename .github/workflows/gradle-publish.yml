@@ -20,6 +20,7 @@ jobs:
       uses: actions/setup-java@v2
       with:
         java-version: '11'
+        distribution: 'temurin'
 
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
@@ -31,7 +32,7 @@ jobs:
       uses: gradle/gradle-build-action@v1
       with:
         gradle-version: '7.2.0'
-        arguments: publish
+        arguments: publishToGitHub
       env:
         USERNAME: ${{ github.actor }}
         PASSWORD: ${{ secrets.GITHUB_TOKEN }}
